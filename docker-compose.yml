@@ -1,0 +1,63 @@
+services:
+  frontend:
+    container_name: frontend
+    build:
+      context: ./frontend
+    ports:
+      - "8080:8080"
+    depends_on:
+      - backend
+    networks:
+      - teamboard_net
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+
+  backend:
+    container_name: backend
+    build:
+      context: ./backend
+    ports:
+      - "5000:5000"
+    #Cuando este desarrollada la base de datos
+    #agregar depends_on: con el healthy del servicio
+    env_file:
+      - .env
+    networks:
+      - teamboard_net
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+
+  database:
+    container_name: database
+    #TAREA FEATURE 4: Agregar image, env_file, volumes y healthcheck
+    networks:
+      - teamboard_net
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+
+  portainer:
+    container_name: portainer
+    #TAREA FEATURE 5: Agregar image, port y volumes
+    networks:
+      - teamboard_net
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+
+networks:
+  teamboard_net:
+    driver: bridge
+
+#NOTA: Los volúmenes globales (pgdata y portainer_data) deben ser declarados 
+#aqui abajo por los responsables de la Feature 4 y 5.
