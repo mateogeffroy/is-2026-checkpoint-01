@@ -78,7 +78,7 @@ Las credenciales de la base de datos (usuario, contraseña, nombre de base de da
 
 #### `.gitignore`
 
-Excluye del repositorio todos los archivos que no deben versionarse, incluyendo `.env` (credenciales), `__pycache__` (bytecode de Python) y archivos de configuración local de editores e IDEs.
+Excluye del repositorio todos los archivos que no deben versionarse.
 
 ### Dependencias entre Features
 
@@ -88,6 +88,258 @@ El `docker-compose.yml` refleja el orden de arranque y las dependencias funciona
 * **Feature 03** (Backend) debe estar activo antes de que el Frontend intente consultar la API.
 * **Feature 02** (Frontend) depende de `backend` mediante `depends_on`.
 * **Feature 05** (Portainer) opera de forma independiente y monitorea todos los contenedores.
+
+---
+
+## Feature 02 — Frontend (Página Web con HTML y JavaScript)
+
+Se implementó la interfaz web de TeamBoard App: la pantalla principal que ve el usuario al ingresar al sistema. Desde esta página se puede visualizar el estado de conexión con el backend y una tabla con los integrantes del equipo, la feature asignada a cada uno, el servicio correspondiente y su estado.
+
+### Configuración Técnica
+
+* **Imagen base:** `python:3.12-slim` (versión ligera optimizada para reducir tamaño).
+* **Servidor HTTP:** `python3 -m http.server` — servidor incluido en el intérprete de Python, sin dependencias adicionales.
+* **Puerto:** 8080 (expuesto en `docker-compose.yml`).
+
+### Endpoints Consumidos
+
+#### 1\. GET `/api/health`
+
+* **Descripción:** Verifica que el Backend está activo y respondiendo.
+* **Uso:** El frontend consulta este endpoint al cargar la página para mostrar el indicador de estado de conexión.
+
+#### 2\. GET `/api/team`
+
+* **Descripción:** Obtiene la lista completa de integrantes del equipo.
+* **Uso:** Con la respuesta, JavaScript construye la tabla de integrantes de forma dinámica. Si los datos cambian en la base de datos, se reflejan en la página sin modificar manualmente el HTML.
+
+### Archivos Principales
+
+#### `frontend/html/index.html`
+
+Contiene la estructura visual de la página. Define el dashboard principal, el encabezado, la sección de estado del backend y la tabla de integrantes. Incorpora estilos CSS con diseño en modo oscuro. No contiene datos hardcodeados: toda la información de la tabla es inyectada por `app.js` en tiempo de ejecución.
+
+#### `frontend/html/app.js`
+
+Contiene la lógica del frontend. Se encarga de realizar las consultas al backend y actualizar la página con los datos recibidos:
+
+1. Consulta `/api/health` para verificar el estado del backend y mostrar el indicador de conexión.
+2. Consulta `/api/team` para obtener los datos del equipo.
+3. Construye la tabla de integrantes de forma dinámica con JavaScript a partir de la respuesta JSON.
+
+#### `frontend/Dockerfile`
+
+Containeriza el frontend siguiendo buenas prácticas:
+
+* Usa imagen slim (`python:3.12-slim`) para minimizar tamaño.
+* Versión fija para garantizar reproducibilidad.
+* Copia la carpeta `html/` dentro del contenedor.
+* Expone el puerto 8080.
+* Ejecuta `python3 -m http.server 8080` como proceso principal.
+
+#### `frontend/.dockerignore`
+
+Excluye archivos innecesarios de la imagen Docker:
+
+* `.env` — las credenciales no deben copiarse a la imagen.
+* `.git` — el control de versiones no es necesario en el contenedor.
+* Archivos temporales y configuraciones locales del editor.
+
+### Límites de Recursos
+
+En `docker-compose.yml` se configuró:
+
+* **CPU:** 0.5 cores
+* **Memoria:** 256 MB
+
+Esto previene que el Frontend consuma recursos excesivos del host.
+
+### Dependencias
+
+* Depende de: Feature 03 (Backend) — consume los endpoints `/api/health` y `/api/team`.
+* Los datos mostrados provienen de Feature 04 (Database), accedidos indirectamente a través de la API Flask.
+* Monitoreado por: Feature 05 (Portainer) — visualización del contenedor.
+
+---
+
+## Feature 03 — Backend (API REST con Flask)
+
+Se implementó una API REST que actúa como intermediaria entre el frontend y la base de datos, proporcionando los datos del equipo de forma segura y estructurada.
+
+### Configuración Técnica
+
+* **Imagen base:** `python:3.12-slim` (versión ligera optimizada para reducir tamaño).
+* **Framework:** Flask 3.0.2 — framework web minimalista para Python.
+* **Driver de BD:** psycopg2-binary 2.9.9 — conector PostgreSQL para Python.
+* **Servidor de aplicación:** Gunicorn 21.2.0 — servidor WSGI production-ready.
+* **Puerto:** 5000 (expuesto en `docker-compose.yml`).
+
+### Endpoints Disponibles
+
+#### 1\. GET `/api/health`
+
+* **Descripción:** Verifica que el servicio Backend está activo y respondiendo.
+* **Respuesta:** `{"status": "healthy"}`
+* **Uso:** Utilizado por Docker en el HEALTHCHECK para monitoreo automático.
+
+#### 2\. GET `/api/team`
+
+* **Descripción:** Devuelve la lista completa de integrantes del equipo.
+* **Datos leídos desde:** Tabla `members` de PostgreSQL.
+* **Respuesta esperada:**
+
+```json
+[
+  {
+    "id": 1,
+    "nombre": "Juan",
+    "apellido": "Pérez",
+    "legajo": "12.345",
+    "feature": "Feature XX",
+    "servicio": "Frontend",
+    "estado": "Activo"
+  }
+]
+```
+
+#### 3\. GET `/api/info`
+
+* **Descripción:** Devuelve información y metadata del servicio Backend.
+* **Respuesta:** `{"service": "backend", "version": "1.0.0", "description": "API para gestionar miembros del equipo"}`
+
+### Conexión a la Base de Datos
+
+El Backend se conecta a PostgreSQL utilizando las siguientes variables de entorno (definidas en `.env`):
+
+* `POSTGRES_HOST` — Host del servidor PostgreSQL (default: `database`).
+* `POSTGRES_DB` — Nombre de la base de datos.
+* `POSTGRES_USER` — Usuario PostgreSQL.
+* `POSTGRES_PASSWORD` — Contraseña de conexión.
+* `POSTGRES_PORT` — Puerto PostgreSQL (default: `5432`).
+
+> Nota: Las credenciales NO están hardcodeadas en el código fuente por razones de seguridad.
+
+### Archivos Principales
+
+#### `backend/app.py`
+
+Aplicación principal Flask que:
+
+* Define los 3 endpoints REST obligatorios.
+* Gestiona la conexión a PostgreSQL con psycopg2.
+* Habilita CORS para permitir solicitudes desde el Frontend.
+* Retorna datos en formato JSON.
+
+#### `backend/Dockerfile`
+
+Containeriza el Backend siguiendo buenas prácticas:
+
+* Usa imagen slim (`python:3.12-slim`) para minimizar tamaño.
+* Versión fija para garantizar reproducibilidad.
+* Copia `requirements.txt` primero para optimizar caché de capas Docker.
+* Define usuario no-root para seguridad.
+* Incluye HEALTHCHECK para monitoreo automático.
+* Ejecuta con Gunicorn en puerto 5000.
+
+#### `backend/.dockerignore`
+
+Excluye archivos innecesarios de la imagen Docker:
+
+* `.env` — las credenciales no deben copiarse a la imagen.
+* `__pycache__` — bytecode compilado de Python.
+* `.git` — el control de versiones no es necesario en el contenedor.
+
+#### `backend/requirements.txt`
+
+Define las dependencias Python requeridas:
+
+* `Flask` — framework web para la API REST.
+* `psycopg2-binary` — driver para conectar a PostgreSQL.
+* `gunicorn` — servidor WSGI para producción.
+
+### Límites de Recursos
+
+En `docker-compose.yml` se configuró:
+
+* **CPU:** 0.5 cores
+* **Memoria:** 256 MB
+
+Esto previene que el Backend consuma recursos excesivos del host.
+
+### Dependencias
+
+* Depende de: Feature 04 (Database) — requiere la tabla `members` en PostgreSQL.
+* Utilizado por: Feature 02 (Frontend) — realiza fetch a `/api/team`.
+* Monitoreado por: Feature 05 (Portainer) — visualización del contenedor.
+
+---
+
+## Feature 04 — Base de Datos (PostgreSQL)
+
+Se implementó un motor de base de datos relacional para el almacenamiento persistente de la información de los integrantes del equipo. A diferencia del resto de los servicios, la base de datos no requiere un Dockerfile propio: se utiliza directamente la imagen oficial de PostgreSQL configurada desde el `docker-compose.yml`.
+
+### Configuración Técnica
+
+* **Imagen:** `postgres:16-alpine` (versión ligera basada en Alpine Linux).
+* **Persistencia:** Se utiliza un volumen nombrado `pgdata` para asegurar que los datos no se pierdan al reiniciar o recrear los contenedores.
+* **Red:** El servicio no expone ningún puerto al host. Es accesible únicamente de forma interna a través de la red `teamboard_net`, lo que reduce la superficie de ataque.
+* **Healthcheck:** Se configuró una prueba de salud mediante `pg_isready` para garantizar que la base de datos esté lista antes de que el Backend intente conectarse.
+
+### Variables de Entorno
+
+La configuración del servicio se realiza a través de variables de entorno definidas en el archivo `.env` (nunca hardcodeadas en el `docker-compose.yml`):
+
+* `POSTGRES_DB` — Nombre de la base de datos a crear al iniciar el contenedor.
+* `POSTGRES_USER` — Usuario con permisos sobre esa base de datos.
+* `POSTGRES_PASSWORD` — Contraseña del usuario PostgreSQL.
+
+### Archivos Principales
+
+#### `database/init.sql`
+
+Script SQL que se ejecuta automáticamente la primera vez que el contenedor arranca. Realiza dos operaciones:
+
+**1. Creación de la tabla `members`:**
+
+```sql
+CREATE TABLE IF NOT EXISTS members (
+    id       SERIAL PRIMARY KEY,
+    nombre   VARCHAR(100) NOT NULL,
+    apellido VARCHAR(100) NOT NULL,
+    legajo   VARCHAR(20)  NOT NULL,
+    feature  VARCHAR(100) NOT NULL,
+    servicio VARCHAR(100) NOT NULL,
+    estado   VARCHAR(50)  NOT NULL
+);
+```
+
+Cada columna representa un atributo del integrante: identificador autoincremental, nombre, apellido, legajo, feature asignada, servicio correspondiente y estado actual.
+
+**2. Inserción de los registros del equipo:**
+
+```sql
+INSERT INTO members (nombre, apellido, legajo, feature, servicio, estado) VALUES
+('Mateo Arturo', 'Geffroy', '32.027', 'Feature 01 y 04', 'Infraestructura / Base de Datos', 'En desarrollo'),
+('Luciana',      'Martino', '30.499', 'Feature 02',      'Frontend',                        'En desarrollo'),
+('German',       'Altamirano', '31.044', 'Feature 03',   'Backend',                         'En desarrollo'),
+('Benjamin',     'Briones',    '32.101', 'Feature 05',   'Portainer',                       'En desarrollo');
+```
+
+Estos son los datos que el Backend lee al recibir una solicitud a `/api/team` y que el Frontend muestra en la tabla de integrantes.
+
+### Límites de Recursos
+
+En `docker-compose.yml` se configuró:
+
+* **CPU:** 1.0 core
+* **Memoria:** 512 MB
+
+La base de datos recibe mayor asignación de recursos que el resto de los servicios, dado que es la capa de persistencia compartida por toda la aplicación.
+
+### Dependencias
+
+* Utilizada por: Feature 03 (Backend) — el backend ejecuta `SELECT * FROM members` para servir los datos al frontend.
+* Monitoreada por: Feature 05 (Portainer) — visualización del contenedor.
 
 ---
 
@@ -136,6 +388,6 @@ Vista del entorno local conectado desde Portainer:
 
 ![Entorno local conectado en Portainer](docs/images/portainer-environment.png)
 
-Lista de contenedores detectados por Portainer, incluyendo `frontend`, `backend`, `database` y `portainer`:
-
 ![Lista de contenedores en Portainer](docs/images/portainer-containers.png)
+
+Lista de contenedores detectados por Portainer, incluyendo `frontend`, `backend`, `database` y `portainer`.
