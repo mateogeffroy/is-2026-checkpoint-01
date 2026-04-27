@@ -21,8 +21,9 @@ services:
       context: ./backend
     ports:
       - "5000:5000"
-    #Cuando este desarrollada la base de datos
-    #agregar depends_on: con el healthy del servicio
+    depends_on:
+      database:
+        condition: service_healthy
     env_file:
       - .env
     networks:
@@ -35,7 +36,17 @@ services:
 
   database:
     container_name: database
-    #TAREA FEATURE 4: Agregar image, env_file, volumes y healthcheck
+    image: postgres:16-alpine
+    env_file:
+      - .env
+    volumes:
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     networks:
       - teamboard_net
     deploy:
@@ -59,5 +70,8 @@ networks:
   teamboard_net:
     driver: bridge
 
+
+volumes:
+  pgdata:
 #NOTA: Los volúmenes globales (pgdata y portainer_data) deben ser declarados 
 #aqui abajo por los responsables de la Feature 4 y 5.
