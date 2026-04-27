@@ -88,3 +88,42 @@ El `docker-compose.yml` refleja el orden de arranque y las dependencias funciona
 * **Feature 03** (Backend) debe estar activo antes de que el Frontend intente consultar la API.
 * **Feature 02** (Frontend) depende de `backend` mediante `depends_on`.
 * **Feature 05** (Portainer) opera de forma independiente y monitorea todos los contenedores.
+
+---
+
+## Feature 05 — Portainer
+
+Se incorporó **Portainer Community Edition** como servicio de administración y monitoreo de la infraestructura Docker del proyecto. Este servicio permite visualizar los contenedores levantados por `docker-compose.yml`, revisar su estado, consultar logs, inspeccionar recursos y administrar el entorno Docker desde una interfaz web.
+
+Portainer queda disponible en `http://localhost:9000` una vez ejecutado `docker compose up -d --build`.
+
+### Configuración del servicio
+
+En el archivo `docker-compose.yml` se declaró el servicio `portainer` con la siguiente configuración:
+
+| Campo | Valor declarado | Descripción |
+| :--- | :--- | :--- |
+| `container_name` | `portainer` | Nombre fijo del contenedor para identificarlo fácilmente. |
+| `image` | `portainer/portainer-ce:latest` | Imagen oficial de Portainer Community Edition utilizada para levantar el panel. |
+| `ports` | `9000:9000` | Expone el puerto `9000` del contenedor en el puerto `9000` del host. |
+| `volumes` | `/var/run/docker.sock:/var/run/docker.sock` | Permite que Portainer se comunique con el Docker Engine del host y pueda listar y administrar contenedores. |
+| `volumes` | `portainer_data:/data` | Volumen persistente donde Portainer guarda su configuración interna. |
+| `networks` | `teamboard_net` | Conecta Portainer a la misma red interna que el resto de los servicios. |
+| `deploy.resources.limits.cpus` | `0.5` | Limita el uso máximo de CPU del contenedor. |
+| `deploy.resources.limits.memory` | `256M` | Limita la memoria máxima disponible para el contenedor. |
+
+### Variables y volúmenes declarados
+
+El servicio `portainer` **no requiere variables de entorno propias** ni utiliza el archivo `.env`. Su configuración se realiza directamente desde los campos declarados en `docker-compose.yml`.
+
+Además, se declaró el volumen global:
+
+* **`portainer_data`** — Volumen persistente utilizado por Portainer para conservar usuarios, configuración inicial, endpoints y datos internos aun cuando el contenedor sea recreado.
+
+También se monta el socket de Docker del host:
+
+* **`/var/run/docker.sock`** — Archivo especial que permite a Portainer comunicarse con Docker. Gracias a este montaje, Portainer puede detectar y monitorear los contenedores `frontend`, `backend`, `database` y `portainer`.
+
+### Rol dentro de la arquitectura
+
+Portainer no forma parte del flujo funcional de la aplicación TeamBoard, por lo que no es una dependencia directa del frontend, backend o base de datos. Su rol es operativo: brindar una herramienta visual para supervisar los servicios, verificar su estado y facilitar tareas de administración durante el desarrollo y la demostración del checkpoint.
