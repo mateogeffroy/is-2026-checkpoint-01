@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TeamBoard App</title>
+
+  <style>
+    :root {
+      --bg: #060816;
+      --bg-2: #0a1022;
+      --panel: rgba(11, 18, 38, 0.72);
+      --panel-strong: rgba(13, 20, 42, 0.92);
+      --panel-soft: rgba(255, 255, 255, 0.03);
+
+      --text: #edf3ff;
+      --muted: #95a2c6;
+      --line: rgba(255, 255, 255, 0.08);
+
+      --blue: #63a4ff;
+      --cyan: #00e5ff;
+      --violet: #8b5cf6;
+      --pink: #ff4fd8;
+      --green: #4ade80;
+      --yellow: #fbbf24;
+      --red: #fb7185;
+
+      --success-bg: rgba(74, 222, 128, 0.14);
+      --success-text: #86efac;
+      --warning-bg: rgba(251, 191, 36, 0.14);
+      --warning-text: #fcd34d;
+      --danger-bg: rgba(251, 113, 133, 0.14);
+      --danger-text: #fda4af;
+
+      --radius-xl: 28px;
+      --radius-lg: 20px;
+      --radius-md: 14px;
+
+      --shadow-lg: 0 24px 60px rgba(0, 0, 0, 0.45);
+      --shadow-glow: 0 0 30px rgba(0, 229, 255, 0.08);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      min-height: 100vh;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 10% 20%, rgba(0, 229, 255, 0.10), transparent 25%),
+        radial-gradient(circle at 85% 10%, rgba(139, 92, 246, 0.12), transparent 25%),
+        radial-gradient(circle at 50% 100%, rgba(255, 79, 216, 0.08), transparent 30%),
+        linear-gradient(180deg, #050814 0%, #070b18 45%, #060816 100%);
+      position: relative;
+      overflow-x: hidden;
+      padding: 36px 20px 48px;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+      background-size: 36px 36px;
+      mask-image: linear-gradient(to bottom, rgba(0,0,0,0.45), rgba(0,0,0,0.12));
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    body::after {
+      content: "";
+      position: fixed;
+      inset: 0;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,0.015), rgba(255,255,255,0));
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .container {
+      position: relative;
+      z-index: 1;
+      max-width: 1250px;
+      margin: 0 auto;
+    }
+
+    .hero {
+      position: relative;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-xl);
+      background:
+        linear-gradient(135deg, rgba(99, 164, 255, 0.14), rgba(139, 92, 246, 0.10) 45%, rgba(0, 229, 255, 0.08)),
+        var(--panel);
+      backdrop-filter: blur(16px);
+      box-shadow: var(--shadow-lg), var(--shadow-glow);
+      padding: 34px;
+      margin-bottom: 24px;
+    }
+
+    .hero::before {
+      content: "";
+      position: absolute;
+      top: -40%;
+      right: -10%;
+      width: 340px;
+      height: 340px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(0,229,255,0.16), transparent 65%);
+      filter: blur(10px);
+      pointer-events: none;
+    }
+
+    .hero::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.06), transparent);
+      transform: translateX(-100%);
+      animation: sweep 8s linear infinite;
+      pointer-events: none;
+    }
+
+    @keyframes sweep {
+      100% {
+        transform: translateX(100%);
+      }
+    }
+
+    .hero-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+      margin-bottom: 18px;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 14px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.08);
+      color: #cfe4ff;
+      font-size: 0.84rem;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .eyebrow-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--cyan);
+      box-shadow: 0 0 16px var(--cyan);
+    }
+
+    .live-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 14px;
+      border-radius: 999px;
+      background: rgba(74, 222, 128, 0.08);
+      border: 1px solid rgba(74, 222, 128, 0.18);
+      color: #a7f3d0;
+      font-size: 0.86rem;
+      font-weight: 700;
+    }
+
+    .live-pulse {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 14px var(--green);
+      animation: pulse 1.6s infinite ease-in-out;
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.3); opacity: 0.6; }
+    }
+
+    .hero h1 {
+      font-size: clamp(2.4rem, 5vw, 4.2rem);
+      line-height: 1.02;
+      letter-spacing: -0.04em;
+      margin-bottom: 14px;
+      max-width: 780px;
+    }
+
+    .hero h1 span {
+      background: linear-gradient(90deg, #ffffff 0%, #b8d3ff 35%, #7be7ff 70%, #d7b3ff 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .hero p {
+      max-width: 850px;
+      color: var(--muted);
+      font-size: 1.03rem;
+      line-height: 1.7;
+    }
+
+    .hero-grid {
+      margin-top: 24px;
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .mini-card {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 18px;
+      padding: 16px;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.03);
+    }
+
+    .mini-card-label {
+      color: var(--muted);
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 8px;
+      display: block;
+    }
+
+    .mini-card-value {
+      font-size: 1.15rem;
+      font-weight: 800;
+      color: #f2f7ff;
+    }
+
+    .mini-card-accent {
+      color: var(--cyan);
+    }
+
+    .layout {
+      display: grid;
+      gap: 24px;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      backdrop-filter: blur(14px);
+      box-shadow: var(--shadow-lg);
+    }
+
+    .panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+      padding: 22px 24px;
+      border-bottom: 1px solid var(--line);
+      background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0));
+    }
+
+    .panel-header h2 {
+      font-size: 1.45rem;
+      letter-spacing: -0.02em;
+      margin-bottom: 4px;
+    }
+
+    .panel-header p,
+    .panel-header span {
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    .status-content {
+      display: grid;
+      grid-template-columns: 1.6fr 1fr;
+      gap: 16px;
+      padding: 22px 24px 24px;
+    }
+
+    .status-box,
+    .status-side {
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 18px;
+      background: rgba(255,255,255,0.03);
+    }
+
+    .status-box h3,
+    .status-side h3 {
+      margin-bottom: 8px;
+      font-size: 1.02rem;
+    }
+
+    .status-box p,
+    .status-side p {
+      color: var(--muted);
+      line-height: 1.6;
+      font-size: 0.95rem;
+    }
+
+    .status-side {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 10px;
+      align-items: flex-start;
+    }
+
+    .status-badge {
+      padding: 12px 18px;
+      border-radius: 999px;
+      font-weight: 800;
+      font-size: 0.95rem;
+      letter-spacing: 0.02em;
+      border: 1px solid transparent;
+      white-space: nowrap;
+      box-shadow: 0 0 0 1px rgba(255,255,255,0.02) inset;
+    }
+
+    .status-badge.checking {
+      background: rgba(99, 164, 255, 0.12);
+      color: #9ac6ff;
+      border-color: rgba(99, 164, 255, 0.22);
+    }
+
+    .status-badge.online {
+      background: var(--success-bg);
+      color: var(--success-text);
+      border-color: rgba(74, 222, 128, 0.22);
+      box-shadow: 0 0 18px rgba(74, 222, 128, 0.10);
+    }
+
+    .status-badge.offline {
+      background: var(--danger-bg);
+      color: var(--danger-text);
+      border-color: rgba(251, 113, 133, 0.22);
+      box-shadow: 0 0 18px rgba(251, 113, 133, 0.10);
+    }
+
+    .data-panel-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .counter-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 14px;
+      border-radius: 999px;
+      background: rgba(0, 229, 255, 0.10);
+      border: 1px solid rgba(0, 229, 255, 0.22);
+      color: #9cefff;
+      font-weight: 700;
+      font-size: 0.92rem;
+    }
+
+    .counter-chip::before {
+      content: "◉";
+      color: var(--cyan);
+      text-shadow: 0 0 10px var(--cyan);
+      font-size: 0.9rem;
+    }
+
+    .table-wrapper {
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      min-width: 940px;
+      border-collapse: collapse;
+    }
+
+    thead {
+      background: rgba(255,255,255,0.03);
+    }
+
+    th, td {
+      padding: 18px 16px;
+      text-align: left;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+
+    th {
+      color: #b8c5ea;
+      font-size: 0.76rem;
+      font-weight: 800;
+      letter-spacing: 0.10em;
+      text-transform: uppercase;
+    }
+
+    td {
+      font-size: 0.97rem;
+      color: #edf3ff;
+    }
+
+    tbody tr {
+      transition: 0.2s ease;
+    }
+
+    tbody tr:hover {
+      background: rgba(255,255,255,0.035);
+      box-shadow: inset 4px 0 0 rgba(0, 229, 255, 0.55);
+    }
+
+    .service-pill,
+    .state-pill {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 8px 12px;
+      border-radius: 999px;
+      font-size: 0.84rem;
+      font-weight: 800;
+      border: 1px solid transparent;
+      letter-spacing: 0.01em;
+    }
+
+    .service-pill {
+      background: linear-gradient(135deg, rgba(99,164,255,0.16), rgba(139,92,246,0.14));
+      color: #c9d8ff;
+      border-color: rgba(99,164,255,0.22);
+    }
+
+    .state-pill.activo {
+      background: var(--success-bg);
+      color: var(--success-text);
+      border-color: rgba(74, 222, 128, 0.20);
+    }
+
+    .state-pill.desarrollo {
+      background: var(--warning-bg);
+      color: var(--warning-text);
+      border-color: rgba(251, 191, 36, 0.20);
+    }
+
+    .state-pill.otro {
+      background: rgba(255,255,255,0.07);
+      color: #dce6ff;
+      border-color: rgba(255,255,255,0.10);
+    }
+
+    .message {
+      padding: 24px;
+      text-align: center;
+      color: var(--muted);
+    }
+
+    .error {
+      color: var(--danger-text);
+      font-weight: 700;
+    }
+
+    footer {
+      margin-top: 24px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    .footer-highlight {
+      color: #d9ebff;
+      font-weight: 800;
+    }
+
+    @media (max-width: 980px) {
+      .hero-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .status-content {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 700px) {
+      body {
+        padding: 22px 14px 34px;
+      }
+
+      .hero,
+      .panel-header,
+      .status-content {
+        padding-left: 18px;
+        padding-right: 18px;
+      }
+
+      .hero {
+        padding-top: 26px;
+        padding-bottom: 26px;
+      }
+
+      .hero-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .hero h1 {
+        font-size: 2.2rem;
+      }
+
+      .panel-header h2 {
+        font-size: 1.22rem;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <main class="container">
+    <section class="hero">
+      <div class="hero-top">
+        <div class="eyebrow">
+          <span class="eyebrow-dot"></span>
+          CNTRL+Z
+        </div>
+
+        <div class="live-chip">
+          <span class="live-pulse"></span>
+          Sistema en línea
+        </div>
+      </div>
+
+      <h1><span>TeamBoard App</span></h1>
+
+      <p>
+        Dashboard visual del grupo <strong>Nombre Grupo</strong>.
+        El frontend consulta el backend Flask, que a su vez obtiene los datos reales del equipo
+        desde PostgreSQL dentro de una arquitectura integrada con Docker Compose.
+      </p>
+
+      <div class="hero-grid">
+        <div class="mini-card">
+          <span class="mini-card-label">Arquitectura</span>
+          <div class="mini-card-value">Frontend → Backend → DB</div>
+        </div>
+
+        <div class="mini-card">
+          <span class="mini-card-label">Tecnologías</span>
+          <div class="mini-card-value">HTML · JS · Flask</div>
+        </div>
+
+        <div class="mini-card">
+          <span class="mini-card-label">Orquestación</span>
+          <div class="mini-card-value mini-card-accent">Docker Compose</div>
+        </div>
+
+        <div class="mini-card">
+          <span class="mini-card-label">Monitoreo</span>
+          <div class="mini-card-value">Portainer</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="layout">
+      <article class="panel">
+        <div class="panel-header">
+          <div>
+            <h2>Estado del backend</h2>
+            <p>Supervisión de conectividad entre la interfaz y la API.</p>
+          </div>
+        </div>
+
+        <div class="status-content">
+          <div class="status-box">
+            <h3>Verificación de disponibilidad</h3>
+            <p>
+              Esta interfaz comprueba si el backend responde correctamente mediante
+              el endpoint <strong>/api/health</strong>. Si la API está disponible,
+              el frontend puede recuperar la información del equipo y renderizarla dinámicamente.
+            </p>
+          </div>
+
+          <div class="status-side">
+            <h3>Estado actual</h3>
+            <div id="backend-status" class="status-badge checking">
+              Verificando conexión...
+            </div>
+            <p>Estado obtenido en tiempo real desde la API.</p>
+          </div>
+        </div>
+      </article>
+
+      <article class="panel">
+        <div class="panel-header">
+          <div>
+            <h2>Integrantes del equipo</h2>
+            <p>Información obtenida desde PostgreSQL a través del backend Flask.</p>
+          </div>
+
+          <div class="data-panel-top">
+            <span id="member-count" class="counter-chip">0 integrantes</span>
+          </div>
+        </div>
+
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Nombre</th>
+                <th>Apellido</th>
+                <th>Legajo</th>
+                <th>Feature</th>
+                <th>Servicio</th>
+                <th>Estado</th>
+              </tr>
+            </thead>
+            <tbody id="team-table-body">
+              <tr>
+                <td colspan="6" class="message">Cargando integrantes...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </article>
+    </section>
+
+    <footer>
+      <p><span class="footer-highlight">Checkpoint 01</span> · Ingeniería y Calidad de Software · 2026</p>
+    </footer>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
