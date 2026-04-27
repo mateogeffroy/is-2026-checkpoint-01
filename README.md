@@ -93,9 +93,11 @@ El `docker-compose.yml` refleja el orden de arranque y las dependencias funciona
 
 ## Feature 05 — Portainer
 
-Se incorporó **Portainer Community Edition** como servicio de administración y monitoreo de la infraestructura Docker del proyecto. Este servicio permite visualizar los contenedores levantados por `docker-compose.yml`, revisar su estado, consultar logs, inspeccionar recursos y administrar el entorno Docker desde una interfaz web.
+Se incorporó **Portainer** como servicio de administración y monitoreo de la infraestructura Docker del proyecto. Este servicio permite visualizar los contenedores levantados por `docker-compose.yml`, revisar su estado, consultar logs, inspeccionar recursos y administrar el entorno Docker desde una interfaz web.
 
 Portainer queda disponible en `http://localhost:9000` una vez ejecutado `docker compose up -d --build`.
+
+Se accede con las credenciales asignadas para la gestión del servicio una vez ingresado a la página.
 
 ### Configuración del servicio
 
@@ -127,3 +129,13 @@ También se monta el socket de Docker del host:
 ### Rol dentro de la arquitectura
 
 Portainer no forma parte del flujo funcional de la aplicación TeamBoard, por lo que no es una dependencia directa del frontend, backend o base de datos. Su rol es operativo: brindar una herramienta visual para supervisar los servicios, verificar su estado y facilitar tareas de administración durante el desarrollo y la demostración del checkpoint.
+
+### Evidencia visual
+
+Vista del entorno local conectado desde Portainer:
+
+![Entorno local conectado en Portainer](docs/images/portainer-environment.png)
+
+Lista de contenedores detectados por Portainer, incluyendo `frontend`, `backend`, `database` y `portainer`:
+
+![Lista de contenedores en Portainer](docs/images/portainer-containers.png)
