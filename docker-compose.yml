@@ -57,7 +57,12 @@ services:
 
   portainer:
     container_name: portainer
-    #TAREA FEATURE 5: Agregar image, port y volumes
+    image: portainer/portainer-ce:latest
+    ports:
+      - "9000:9000"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - portainer_data:/data  
     networks:
       - teamboard_net
     deploy:
@@ -72,6 +77,7 @@ networks:
 
 
 volumes:
+  portainer_data:
   pgdata:
 #NOTA: Los volúmenes globales (pgdata y portainer_data) deben ser declarados 
 #aqui abajo por los responsables de la Feature 4 y 5.
